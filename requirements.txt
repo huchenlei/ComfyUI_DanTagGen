@@ -1,0 +1,6 @@
+torch
+transformers
+llama-cpp-python
+gradio
+requests
+sentencepiece
