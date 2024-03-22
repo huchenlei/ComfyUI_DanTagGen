@@ -2,7 +2,7 @@ import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 from .lib_dantaggen.app import get_result
-from .lib_dantaggen.kgen.metainfo import SPECIAL, TARGET
+from .lib_dantaggen.kgen.metainfo import TARGET
 
 MODEL_PATHS = ["KBlueLeaf/DanTagGen-alpha", "KBlueLeaf/DanTagGen-beta"]
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
