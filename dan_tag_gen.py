@@ -2,7 +2,7 @@ import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 from .lib_dantaggen.app import get_result
-
+from .lib_dantaggen.kgen.metainfo import SPECIAL, TARGET
 
 MODEL_PATHS = ["KBlueLeaf/DanTagGen-alpha", "KBlueLeaf/DanTagGen-beta"]
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -16,14 +16,14 @@ class DanTagGen:
         return {
             "required": {
                 "model": (MODEL_PATHS,),
-                "artist": ("STRING",),
-                "characters": ("STRING",),
-                "copyrights": ("STRING",),
-                "special_tags": ("STRING",),
-                "tag": ("STRING",),
-                "blacklist": ("STRING",),
+                "artist": ("STRING", {"default": ""}),
+                "characters": ("STRING", {"default": ""}),
+                "copyrights": ("STRING", {"default": ""}),
+                "special_tags": ("STRING", {"default": ""}),
+                "general": ("STRING", {"default": ""}),
+                "blacklist": ("STRING", {"default": ""}),
                 "rating": (["safe", "sensitive", "nsfw", "nsfw, explicit"],),
-                "target": (["very_short", "short", "long", "very_long"],),
+                "target": (list(TARGET.keys()),),
                 "width": (
                     "INT",
                     {"default": 1024, "min": 256, "max": 4096, "step": 32},
@@ -37,10 +37,10 @@ class DanTagGen:
             },
         }
 
-    # Returns (final output, LLM output)
     RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("output", "llm_output")
     FUNCTION = "generate"
-    CATEGORY = "prompt"
+    CATEGORY = "_for_testing"
 
     def generate(
         self,
@@ -50,19 +50,17 @@ class DanTagGen:
         characters: str,
         copyrights: str,
         target: str,
-        special_tags: list[str],
+        special_tags: str,
         general: str,
         width: float,
         height: float,
         blacklist: str,
         escape_bracket: bool,
-        temperature: float = 1.35,
+        temperature: float,
     ):
         models = {
             model_path: [
-                LlamaForCausalLM.from_pretrained(
-                    model_path, attn_implementation="flash_attention_2"
-                )
+                LlamaForCausalLM.from_pretrained(model_path)
                 .requires_grad_(False)
                 .eval()
                 .half()
@@ -72,7 +70,7 @@ class DanTagGen:
             for model_path in MODEL_PATHS
         }
         text_model, tokenizer = models[model]
-        yield from get_result(
+        result = list(get_result(
             text_model,
             tokenizer,
             rating,
@@ -80,13 +78,15 @@ class DanTagGen:
             characters,
             copyrights,
             target,
-            special_tags,
+            [s.strip() for s in special_tags.split(",") if s],
             general,
             width / height,
             blacklist,
             escape_bracket,
             temperature,
-        )
+        ))[-1]
+        output, llm_output, _ = result
+        return output, llm_output
 
 
 NODE_CLASS_MAPPINGS = {
