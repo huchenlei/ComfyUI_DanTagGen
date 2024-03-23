@@ -20,7 +20,7 @@ class DanTagGen:
                 "characters": ("STRING", {"default": ""}),
                 "copyrights": ("STRING", {"default": ""}),
                 "special_tags": ("STRING", {"default": ""}),
-                "general": ("STRING", {"default": ""}),
+                "general": ("STRING", {"default": "", "multiline": True}),
                 "blacklist": ("STRING", {"default": ""}),
                 "rating": (["safe", "sensitive", "nsfw", "nsfw, explicit"],),
                 "target": (list(TARGET.keys()),),
@@ -70,23 +70,25 @@ class DanTagGen:
             for model_path in MODEL_PATHS
         }
         text_model, tokenizer = models[model]
-        result = list(get_result(
-            text_model,
-            tokenizer,
-            rating,
-            artist,
-            characters,
-            copyrights,
-            target,
-            [s.strip() for s in special_tags.split(",") if s],
-            general,
-            width / height,
-            blacklist,
-            escape_bracket,
-            temperature,
-        ))[-1]
+        result = list(
+            get_result(
+                text_model,
+                tokenizer,
+                rating,
+                artist,
+                characters,
+                copyrights,
+                target,
+                [s.strip() for s in special_tags.split(",") if s],
+                general,
+                width / height,
+                blacklist,
+                escape_bracket,
+                temperature,
+            )
+        )[-1]
         output, llm_output, _ = result
-        return output, llm_output
+        return {"result": (output, llm_output)}
 
 
 NODE_CLASS_MAPPINGS = {
