@@ -1,0 +1,15 @@
+[project]
+name = "comfyui_dantaggen"
+description = "ComfyUI node of [a/Kohaku's DanTagGen Demo](https://huggingface.co/KBlueLeaf/DanTagGen?not-for-all-audiences=true)."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["torch", "transformers", "llama-cpp-python", "requests", "sentencepiece"]
+
+[project.urls]
+Repository = "https://github.com/huchenlei/ComfyUI_DanTagGen"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI_DanTagGen"
+Icon = ""
