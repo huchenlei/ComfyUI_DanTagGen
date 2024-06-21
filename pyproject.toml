@@ -10,6 +10,6 @@ Repository = "https://github.com/huchenlei/ComfyUI_DanTagGen"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "huchenlei"
 DisplayName = "ComfyUI_DanTagGen"
 Icon = ""
