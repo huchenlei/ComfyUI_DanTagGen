@@ -1,8 +1,10 @@
+import os
 import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 from .lib_dantaggen.app import get_result
 from .lib_dantaggen.kgen.metainfo import TARGET
+from .lib_dantaggen.kgen.logging import logger
 
 MODEL_PATHS = [
     "KBlueLeaf/DanTagGen-alpha",
@@ -12,15 +14,63 @@ MODEL_PATHS = [
 ]
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+ext_dir = os.path.dirname(os.path.realpath(__file__))
+
+# text_model = None
+# tokenizer = None
+# modelPath = None
+def loadModel(model_path):
+    global text_model
+    # global text_model, tokenizer, modelPath
+    # if modelPath == model_path and text_model is not None:
+    #     logger.warning(f"返回旧模型: {model_path}, {modelPath}")
+    #     return text_model, tokenizer
+
+    # logger.warning(f"重新加载模型: {model_path}, {modelPath}")
+
+    #Find gguf model
+    try:
+        from llama_cpp import Llama, LLAMA_SPLIT_MODE_NONE
+
+        text_model = Llama(
+            f"{ext_dir}\models\{model_path}",
+            n_ctx=384,
+            split_mode=LLAMA_SPLIT_MODE_NONE,
+            n_gpu_layers=100,
+            verbose=False,
+        )
+        tokenizer = None
+    except Exception as e:
+        # 捕获其他所有异常
+        logger.warning(f"Llama-cpp-python not found, using transformers to load model: {e}")
+        from transformers import LlamaForCausalLM, LlamaTokenizer
+
+        text_model = (
+            LlamaForCausalLM.from_pretrained(model_path).eval().half()
+        )
+        tokenizer = LlamaTokenizer.from_pretrained(model_path)
+        if torch.cuda.is_available():
+            text_model = text_model.cuda()
+        else:
+            text_model = text_model.cpu()
+    return text_model, tokenizer
 
 class DanTagGen:
     """DanTagGen node."""
+    model = None
+    text_model = None
+    tokenizer = None
 
     @classmethod
     def INPUT_TYPES(s):
+        MODEL_PATHSs = MODEL_PATHS[:]
+        for f in os.listdir(ext_dir + "/models"):
+            if f.endswith(".gguf"):
+                MODEL_PATHSs.append(f)
+
         return {
             "required": {
-                "model": (MODEL_PATHS,),
+                "model": (MODEL_PATHSs,),
                 "artist": ("STRING", {"default": ""}),
                 "characters": ("STRING", {"default": ""}),
                 "copyrights": ("STRING", {"default": ""}),
@@ -61,24 +111,27 @@ class DanTagGen:
         height: float,
         blacklist: str,
         escape_bracket: bool,
-        temperature: float,
+        temperature: float
     ):
-        models = {
-            model_path: [
-                LlamaForCausalLM.from_pretrained(model_path)
-                .requires_grad_(False)
-                .eval()
-                .half()
-                .to(DEVICE),
-                LlamaTokenizer.from_pretrained(model_path),
-            ]
-            for model_path in MODEL_PATHS
-        }
-        text_model, tokenizer = models[model]
+        if self.model != model:
+            self.model = model
+            self.text_model, self.tokenizer = loadModel(model)
+        # models = {
+        #     model_path: [
+        #         LlamaForCausalLM.from_pretrained(model_path)
+        #         .requires_grad_(False)
+        #         .eval()
+        #         .half()
+        #         .to(DEVICE),
+        #         LlamaTokenizer.from_pretrained(model_path),
+        #     ]
+        #     for model_path in MODEL_PATHS
+        # }
+        # text_model, tokenizer = models[model]
         result = list(
             get_result(
-                text_model,
-                tokenizer,
+                self.text_model,
+                self.tokenizer,
                 rating,
                 artist,
                 characters,

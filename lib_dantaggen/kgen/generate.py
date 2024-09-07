@@ -38,6 +38,8 @@ def generate(
         top_k=top_k,
         repetition_penalty=repetition_penalty,
         do_sample=True,
+        pad_token_id=tokenizer.eos_token_id,
+        eos_token_id=tokenizer.eos_token_id,
         **kwargs,
     )
     with torch.no_grad(), autocast_gen():
@@ -87,8 +89,6 @@ def tag_gen(
                 torch.autocast("cuda") if torch.cuda.is_available() else nullcontext()
             ),
             prompt_lookup_num_tokens=10,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
         )
         llm_gen = llm_gen.replace("</s>", "").replace("<s>", "")
         extra = llm_gen.split("<|input_end|>")[-1].strip().strip(",")

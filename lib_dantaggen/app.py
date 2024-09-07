@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 subprocess.run(
     "pip install flash-attn --no-build-isolation",
@@ -104,11 +105,34 @@ masterpiece, newest, absurdres, {rating}"""
     print("=" * 50)
 
     if escape_bracket:
-        final_prompt = (
-            final_prompt.replace("[", "\\[")
-            .replace("]", "\\]")
-            .replace("(", "\\(")
-            .replace(")", "\\)")
-        )
+        # 使用逗号分割字符串
+        items = final_prompt.split(',')
+
+        # 修改列表中的每个项
+        modified_items = []
+
+        # 遍历列表中的每个项
+        for item in items:
+            # 使用正则表达式匹配数字
+            if not re.search(r'\((?:[^()\\]*|\\.)*:\d+(\.\d+)?\)', item):
+                # 替换替换掉
+                new_item = re.sub(r'(?<!\\)\[', r'\\[', item)
+                new_item = re.sub(r'(?<!\\)\]', r'\\]', new_item)
+                new_item = re.sub(r'(?<!\\)\(', r'\\(', new_item)
+                new_item = re.sub(r'(?<!\\)\)', r'\\)', new_item)
+            else:
+                new_item = item
+            # 将处理后的项添加到 modified_items 列表中
+            modified_items.append(new_item)
+
+        # 重新合并为一个字符串
+        final_prompt = ','.join(modified_items)
+
+        # final_prompt = (
+        #     final_prompt.replace("[", "\\[")
+        #     .replace("]", "\\]")
+        #     .replace("(", "\\(")
+        #     .replace(")", "\\)")
+        # )
 
     yield final_prompt, llm_gen, f"Total cost time: {(time_ns()-start)/1e9:.2f}s  |  Total general tags: {len(special+tags)}"
