@@ -1,4 +1,5 @@
 import torch
+import random
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 from .lib_dantaggen.app import get_result
@@ -39,6 +40,7 @@ class DanTagGen:
                 ),
                 "escape_bracket": ("BOOLEAN", {"default": False}),
                 "temperature": ("FLOAT", {"default": 1.35, "step": 0.05}),
+                "seed": ("INT", {"default": random.randint(10000, 999999999)})
             },
         }
 
@@ -62,7 +64,13 @@ class DanTagGen:
         blacklist: str,
         escape_bracket: bool,
         temperature: float,
+        seed: int,
     ):
+        random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+
         models = {
             model_path: [
                 LlamaForCausalLM.from_pretrained(model_path)
